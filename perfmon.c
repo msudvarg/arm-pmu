@@ -19,7 +19,7 @@
         unsigned set = pmcnten_get_set();
         unsigned nevents = pmcr_nevents();
 
-        if (flags & PMC_EVENTFLAG_64BIT) {
+        if (flags & PMU_EVENTFLAG_64BIT) {
             nevents >> 1;
             for (int i = 0; i < nevents; i++) {
                 if (set & (0b11 << i) == 0) return i << 1;
@@ -32,7 +32,7 @@
             }
         }
 
-        return PMC_RETURN_NO_OPEN_SLOT;
+        return PMU_RETURN_NO_OPEN_SLOT;
     }
 
     //Find which bit corresponds to provided event, return error if none
@@ -49,7 +49,7 @@
             }
         }
 
-        return PMC_RETURN_EVENT_NO_WATCH;
+        return PMU_RETURN_EVENT_NO_WATCH;
 
     }
 
@@ -57,7 +57,7 @@
 //Public Functions
     
     //Check if event is available on this platform
-    char pmc_event_available(unsigned long event) {
+    char pmu_event_available(unsigned long event) {
 
         unsigned long events;
 
@@ -73,13 +73,13 @@
     }
 
     //Adds event to monitoring
-	int pmc_event_add(unsigned long event, unsigned flags) {
+	int pmu_event_add(unsigned long event, unsigned flags) {
 
         //Check if event is available on this platform
-        if (!pmc_event_available(event)) return PMC_RETURN_EVENT_NO_AVAIL;
+        if (!pmu_event_available(event)) return PMU_RETURN_EVENT_NO_AVAIL;
         
         //Check if event is already monitored
-        if (pmcnten_get_event_bit(event) >= 0) return PMC_RETURN_EVENT_ALREADY;
+        if (pmcnten_get_event_bit(event) >= 0) return PMU_RETURN_EVENT_ALREADY;
 
         //Check if there is an open register
         int i = pmcnten_get_open(flags);
@@ -90,16 +90,16 @@
         pmevtyper_set_event(i, event);
 
         //Add 64-bit chaining is defined as flag
-        if (flags & PMC_EVENTFLAG_64BIT) {
+        if (flags & PMU_EVENTFLAG_64BIT) {
             pmcnten_set(i+1);
             pmevtyper_set_event(i+1, EVT_CHAIN);
         }
 
-        return PMC_RETURN_SUCCESS;
+        return PMU_RETURN_SUCCESS;
     }
 
     //Remove event from monitoring
-	int pmc_event_remove(unsigned long event, unsigned flags) {
+	int pmu_event_remove(unsigned long event, unsigned flags) {
 
         //Check if event is being monitored
         int bit = pmcnten_get_event_bit(event);
@@ -118,12 +118,12 @@
 
         }
 
-        return PMC_RETURN_SUCCESS;
+        return PMU_RETURN_SUCCESS;
 
     }
 
     //Reset event count
-	int pmc_event_reset(unsigned long event, unsigned flags) {
+	int pmu_event_reset(unsigned long event, unsigned flags) {
 
         //Check if event is being monitored
         int bit = pmcnten_get_event_bit(event);
@@ -142,19 +142,19 @@
         //Reset the primary counter
         pmevcntr_set(bit-1, 0);
 
-        return PMC_RETURN_SUCCESS;
+        return PMU_RETURN_SUCCESS;
 
     }
 
     //Get lower 32-bits of event count
     //On success, return event counter register index
-	int pmc_event_read_fast(unsigned long event, unsigned flags, unsigned long * value) {
+	int pmu_event_read_fast(unsigned long event, unsigned flags, unsigned long * value) {
 
         //Check if event is being monitored
         int bit = pmcnten_get_event_bit(event);
         if (bit < 0) return bit;              
 
-        if (!value) return PMC_RETURN_BAD_PTR;
+        if (!value) return PMU_RETURN_BAD_PTR;
 
         *value = pmevcntr_get(bit);
 
@@ -164,11 +164,11 @@
 
     //Get event count value
     //On success, return event counter register index
-	int pmc_event_read(unsigned long event, unsigned flags, unsigned long long * value) {
+	int pmu_event_read(unsigned long event, unsigned flags, unsigned long long * value) {
 
         unsigned long low, high = 0;
 
-        int bit = pmc_event_read_fast(event, flags, &low);
+        int bit = pmu_event_read_fast(event, flags, &low);
         if (bit < 0) return bit;
 
         //Check if 64-bit chaining is defined

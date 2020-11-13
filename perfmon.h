@@ -14,6 +14,8 @@
 * Written October 9, 2020 by Marion Sudvarg
 * 
 * TODO: Add AARCH64 and other ARM versions
+* TODO: Add multicore support (each performance monitor is per-core)
+* TODO: Add overflow interrupt support
 ******************************************************************************/
 
 //Architecture dependent max value that can be provided to Op2 assembly instruction to enumerate performance monitor event count registers
@@ -25,57 +27,57 @@
 //https://developer.arm.com/documentation/ddi0500/j/Performance-Monitor-Unit/AArch32-PMU-register-descriptions/Performance-Monitors-Control-Register?lang=en
 
 	//Enumerate bits in register
-	const unsigned PMCR_ENABLE_COUNTERS = 1 << 0;
-	const unsigned PMCR_EVENT_COUNTER_RESET = 1 << 1;
-	const unsigned PMCR_CYCLE_COUNTER_RESET = 1 << 2;
-	const unsigned PMCR_CYCLE_COUNT_EVERY_64 = 1 << 3; //Increment cycle count every 64 cycles
-	const unsigned PMCR_EXPORT_ENABLE = 1 << 4;
-	const unsigned PMCR_CYCLE_COUNTER_DISABLE = 1 << 5;
-	const unsigned PMCR_CYCLE_COUNTER_64_BITS = 1 << 6; //Cycle counter overflows at 64 bits instead of 32
-	const unsigned PMCR_NEVENTS_SHIFT = 11; //Shift bits for PMCR_NEVENTS
-	const unsigned PMCR_NEVENTS = 0b11111 << PMCR_NEVENTS_SHIFT; //Number of event counters available
+	const static unsigned long PMCR_ENABLE_COUNTERS = 1 << 0;
+	const static unsigned long PMCR_EVENT_COUNTER_RESET = 1 << 1;
+	const static unsigned long PMCR_CYCLE_COUNTER_RESET = 1 << 2;
+	const static unsigned long PMCR_CYCLE_COUNT_EVERY_64 = 1 << 3; //Increment cycle count every 64 cycles
+	const static unsigned long PMCR_EXPORT_ENABLE = 1 << 4;
+	const static unsigned long PMCR_CYCLE_COUNTER_DISABLE = 1 << 5;
+	const static unsigned long PMCR_CYCLE_COUNTER_64_BITS = 1 << 6; //Cycle counter overflows at 64 bits instead of 32
+	const static unsigned long PMCR_NEVENTS_SHIFT = 11; //Shift bits for PMCR_NEVENTS
+	const static unsigned long PMCR_NEVENTS = 0b11111 << PMCR_NEVENTS_SHIFT; //Number of event counters available
 
 	//Writable bits
-	const unsigned PMCR_WRITE = PMCR_ENABLE_COUNTERS | PMCR_EVENT_COUNTER_RESET
+	const static unsigned long PMCR_WRITABLE = PMCR_ENABLE_COUNTERS | PMCR_EVENT_COUNTER_RESET
 								|  PMCR_CYCLE_COUNTER_RESET | PMCR_CYCLE_COUNT_EVERY_64
 								| PMCR_EXPORT_ENABLE | PMCR_CYCLE_COUNTER_DISABLE
 								| PMCR_CYCLE_COUNTER_64_BITS;
 
 	//Readable bits			
-	const unsigned PMCR_READ = PMCR_ENABLE_COUNTERS | PMCR_CYCLE_COUNT_EVERY_64
+	const static unsigned long PMCR_READABLE = PMCR_ENABLE_COUNTERS | PMCR_CYCLE_COUNT_EVERY_64
 								| PMCR_EXPORT_ENABLE | PMCR_CYCLE_COUNTER_DISABLE
 								| PMCR_CYCLE_COUNTER_64_BITS | PMCR_NEVENTS;
 
 	//Get current flags from PMCR
-	static inline unsigned long pmcr_get(void) {
+	static inline unsigned long pmcr_read(void) {
 		unsigned long x = 0;
 		asm volatile ("MRC p15, 0, %0, c9, c12, 0\t\n" : "=r" (x));
 		return x;
 	}
 
 	//Check if one or more PMCR flags are set
-	static inline char pmcr_isset(unsigned x) {
-		return (pmcr_get() & x) == x;
+	static inline char pmcr_isset(unsigned long x) {
+		return (pmcr_read() & x) == x;
 	}
 
 	//Write to PMCR register
-	static inline void pmcr_write(unsigned x) {
+	static inline void pmcr_write(unsigned long x) {
 		asm volatile ("MCR p15, 0, %0, c9, c12, 0\t\n" :: "r" (x));
 	}
 
 	//Set PMCR flags specified, keeping other flags as-is
-	static inline void pmcr_set(unsigned x) {
-		pmcr_write(pmcr_get() | x);
+	static inline void pmcr_set(unsigned long x) {
+		pmcr_write(pmcr_read() | x);
 	}
 
 	//Clear specified PMCR flags, keeping other flags as-is
-	static inline void pmcr_clear(unsigned x) {
-		pmcr_write(pmcr_get() & ~x);
+	static inline void pmcr_unset(unsigned long x) {
+		pmcr_write(pmcr_read() & ~x);
 	}
 
 	//Set PMCR, confirming specified flags are writeable
-	static inline char pmcr_set_confirm(unsigned x) {
-		if ((x & PMCR_WRITE) == x) {
+	static inline char pmcr_set_confirm(unsigned long x) {
+		if ((x & PMCR_WRITABLE) == x) {
 			pmcr_set(x);
 			return 1;
 		}
@@ -83,13 +85,13 @@
 	}
 
 	//Get number of events
-	static inline unsigned pmcr_nevents() {
-		unsigned long nevents = pmcr_get() & PMCR_NEVENTS;
+	static inline unsigned pmu_nevents() {
+		unsigned long nevents = pmcr_read() & PMCR_NEVENTS;
 		return (unsigned) ( nevents >> PMCR_NEVENTS_SHIFT );
 	}
 
 	//Enable event counting
-	static inline void pmcr_enable() {
+	static inline void pmu_enable() {
 		pmcr_set(PMCR_ENABLE_COUNTERS);
 	}
 
@@ -98,10 +100,10 @@
 //https://developer.arm.com/docs/ddi0595/f/aarch32-system-registers/pmcntenset
 
 	//Bits 0-30 correspond to event counters, if available
-	const unsigned PMCNTEN_CYCLE_CTR = 1 << 31;
+	const static unsigned long PMCNTEN_CYCLE_CTR = 1 << 31;
 
 	//Get current flags from PMCNTEN
-	static inline unsigned long pmcnten_get(void) {
+	static inline unsigned long pmcnten_read(void) {
 		unsigned long x = 0;
 		asm volatile ("MRC p15, 0, %0, c9, c12, 1\t\n" : "=r" (x));
 		return x;
@@ -109,13 +111,13 @@
 
 	//Set PMCNTEN flags specified (writing 0 to a bit does nothing)
 	//Set with the PMCNTENSET register
-	static inline void pmcnten_set(unsigned x) {
+	static inline void pmcnten_write(unsigned long x) {
 		asm volatile ("MCR p15, 0, %0, c9, c12, 1\t\n" :: "r" (x));
 	}
 
 	//Clear specified PMCR flags (writing 0 to a bit does nothing)
 	//Clear with the PMCNTENCLR register
-	static inline void pmcnten_clear(unsigned x) {
+	static inline void pmcnten_clear(unsigned long x) {
 		asm volatile ("MCR p15, 0, %0, c9, c12, 2\t\n" :: "r" (x));
 	}
 
@@ -126,125 +128,125 @@
 //PMEVTYPER1-N: event type registers
 
 	//Enumerate events
-	const unsigned long EVT_SW_INCR = 0x00;
-	const unsigned long EVT_L1I_CACHE_REFILL = 0x01;
-	const unsigned long EVT_L1I_TLB_REFILL = 0x02;
-	const unsigned long EVT_L1D_CACHE_REFILL = 0x03;
-	const unsigned long EVT_L1D_CACHE = 0x04;
-	const unsigned long EVT_L1D_TLB_REFILL = 0x05;
-	const unsigned long EVT_LD_RETIRED = 0x06;
-	const unsigned long EVT_ST_RETIRED = 0x07;
-	const unsigned long EVT_INST_RETIRED = 0x08;
+	const static unsigned long EVT_SW_INCR = 0x00;
+	const static unsigned long EVT_L1I_CACHE_REFILL = 0x01;
+	const static unsigned long EVT_L1I_TLB_REFILL = 0x02;
+	const static unsigned long EVT_L1D_CACHE_REFILL = 0x03;
+	const static unsigned long EVT_L1D_CACHE = 0x04;
+	const static unsigned long EVT_L1D_TLB_REFILL = 0x05;
+	const static unsigned long EVT_LD_RETIRED = 0x06;
+	const static unsigned long EVT_ST_RETIRED = 0x07;
+	const static unsigned long EVT_INST_RETIRED = 0x08;
 	//TODO: add remaining constants
-	const unsigned long EVT_CPU_CYCLES = 0x11;
-	const unsigned long EVT_BR_PRED = 0x12;
+	const static unsigned long EVT_CPU_CYCLES = 0x11;
+	const static unsigned long EVT_BR_PRED = 0x12;
 	//TODO: add remaining constants
-	const unsigned long EVT_CHAIN = 0x1E;
+	const static unsigned long EVT_CHAIN = 0x1E;
 	//TODO: add remaining constants
 
 	#define STR(x) #x
 	#define XSTR(s) STR(s)
-	#define PMEVTYPER_GET( N, EVENT ) asm volatile ("MRC p15, 0, %0, c14, c12, " XSTR(N) "\t\n" : "=r" (EVENT))
-	#define PMEVTYPER_SET( N, EVENT ) asm volatile ("MRC p15, 0, %0, c14, c12, " XSTR(N) "\t\n" :: "r" (EVENT))
-	#define PMEVCNTR_GET( N, COUNT ) asm volatile ("MRC p15, 0, %0, c14, c8, " XSTR(N) "\t\n" : "=r" (COUNT))
-	#define PMEVCNTR_SET( N, COUNT ) asm volatile ("MRC p15, 0, %0, c14, c8, " XSTR(N) "\t\n" :: "r" (COUNT))
+	#define PMEVTYPER_READ( N, EVENT ) asm volatile ("MRC p15, 0, %0, c14, c12, " XSTR(N) "\t\n" : "=r" (EVENT))
+	#define PMEVTYPER_WRITE( N, EVENT ) asm volatile ("MRC p15, 0, %0, c14, c12, " XSTR(N) "\t\n" :: "r" (EVENT))
+	#define PMEVCNTR_READ( N, COUNT ) asm volatile ("MRC p15, 0, %0, c14, c8, " XSTR(N) "\t\n" : "=r" (COUNT))
+	#define PMEVCNTR_WRITE( N, COUNT ) asm volatile ("MRC p15, 0, %0, c14, c8, " XSTR(N) "\t\n" :: "r" (COUNT))
 
-	static inline unsigned long pmevtyper_get(unsigned long n) {
+	static inline unsigned long pmevtyper_read(unsigned n) {
 		unsigned long event;
 		switch(n) {
 			case 0 :
-				PMEVTYPER_GET( 0, event );
+				PMEVTYPER_READ( 0, event );
 				break;
 			case 1 :
-				PMEVTYPER_GET( 1, event );
+				PMEVTYPER_READ( 1, event );
 				break;
 			case 2 :
-				PMEVTYPER_GET( 2, event );
+				PMEVTYPER_READ( 2, event );
 				break;
 			case 3 :
-				PMEVTYPER_GET( 3, event );
+				PMEVTYPER_READ( 3, event );
 				break;
 			case 4 :
-				PMEVTYPER_GET( 4, event );
+				PMEVTYPER_READ( 4, event );
 				break;
 			case 5 :
-				PMEVTYPER_GET( 5, event );
+				PMEVTYPER_READ( 5, event );
 				break;
 			case 6 :
-				PMEVTYPER_GET( 6, event );
+				PMEVTYPER_READ( 6, event );
 				break;
 			case 7 :
-				PMEVTYPER_GET( 7, event );
+				PMEVTYPER_READ( 7, event );
 				break;
 #if PMEVCNTR_MAX > 7
 			case 8 :
-				PMEVTYPER_GET( 8, event );
+				PMEVTYPER_READ( 8, event );
 				break;
 			case 9 :
-				PMEVTYPER_GET( 9, event );
+				PMEVTYPER_READ( 9, event );
 				break;
 			case 10 :
-				PMEVTYPER_GET( 10, event );
+				PMEVTYPER_READ( 10, event );
 				break;
 			case 11 :
-				PMEVTYPER_GET( 11, event );
+				PMEVTYPER_READ( 11, event );
 				break;
 			case 12 :
-				PMEVTYPER_GET( 12, event );
+				PMEVTYPER_READ( 12, event );
 				break;
 			case 13 :
-				PMEVTYPER_GET( 13, event );
+				PMEVTYPER_READ( 13, event );
 				break;
 			case 14 :
-				PMEVTYPER_GET( 14, event );
+				PMEVTYPER_READ( 14, event );
 				break;
 			case 15 :
-				PMEVTYPER_GET( 15, event );
+				PMEVTYPER_READ( 15, event );
 				break;
 			case 16 :
-				PMEVTYPER_GET( 16, event );
+				PMEVTYPER_READ( 16, event );
 				break;
 			case 17 :
-				PMEVTYPER_GET( 17, event );
+				PMEVTYPER_READ( 17, event );
 				break;
 			case 18 :
-				PMEVTYPER_GET( 18, event );
+				PMEVTYPER_READ( 18, event );
 				break;
 			case 19 :
-				PMEVTYPER_GET( 19, event );
+				PMEVTYPER_READ( 19, event );
 				break;
 			case 20 :
-				PMEVTYPER_GET( 20, event );
+				PMEVTYPER_READ( 20, event );
 				break;
 			case 21 :
-				PMEVTYPER_GET( 21, event );
+				PMEVTYPER_READ( 21, event );
 				break;
 			case 22 :
-				PMEVTYPER_GET( 22, event );
+				PMEVTYPER_READ( 22, event );
 				break;
 			case 23 :
-				PMEVTYPER_GET( 23, event );
+				PMEVTYPER_READ( 23, event );
 				break;
 			case 24 :
-				PMEVTYPER_GET( 24, event );
+				PMEVTYPER_READ( 24, event );
 				break;
 			case 25 :
-				PMEVTYPER_GET( 25, event );
+				PMEVTYPER_READ( 25, event );
 				break;
 			case 26 :
-				PMEVTYPER_GET( 26, event );
+				PMEVTYPER_READ( 26, event );
 				break;
 			case 27 :
-				PMEVTYPER_GET( 27, event );
+				PMEVTYPER_READ( 27, event );
 				break;
 			case 28 :
-				PMEVTYPER_GET( 28, event );
+				PMEVTYPER_READ( 28, event );
 				break;
 			case 29 :
-				PMEVTYPER_GET( 29, event );
+				PMEVTYPER_READ( 29, event );
 				break;
 			case 30 :
-				PMEVTYPER_GET( 30, event );
+				PMEVTYPER_READ( 30, event );
 				break;
 #endif
 		}
@@ -252,202 +254,202 @@
 		return event;
 	}
 
-	static inline void pmevtyper_set(unsigned long n, unsigned long event) {
+	static inline void pmevtyper_write(unsigned n, unsigned long event) {
 		switch(n) {
 			case 0 :
-				PMEVTYPER_SET( 0, event );
+				PMEVTYPER_WRITE( 0, event );
 				break;
 			case 1 :
-				PMEVTYPER_SET( 1, event );
+				PMEVTYPER_WRITE( 1, event );
 				break;
 			case 2 :
-				PMEVTYPER_SET( 2, event );
+				PMEVTYPER_WRITE( 2, event );
 				break;
 			case 3 :
-				PMEVTYPER_SET( 3, event );
+				PMEVTYPER_WRITE( 3, event );
 				break;
 			case 4 :
-				PMEVTYPER_SET( 4, event );
+				PMEVTYPER_WRITE( 4, event );
 				break;
 			case 5 :
-				PMEVTYPER_SET( 5, event );
+				PMEVTYPER_WRITE( 5, event );
 				break;
 			case 6 :
-				PMEVTYPER_SET( 6, event );
+				PMEVTYPER_WRITE( 6, event );
 				break;
 			case 7 :
-				PMEVTYPER_SET( 7, event );
+				PMEVTYPER_WRITE( 7, event );
 				break;
 #if PMEVCNTR_MAX > 7
 			case 8 :
-				PMEVTYPER_SET( 8, event );
+				PMEVTYPER_WRITE( 8, event );
 				break;
 			case 9 :
-				PMEVTYPER_SET( 9, event );
+				PMEVTYPER_WRITE( 9, event );
 				break;
 			case 10 :
-				PMEVTYPER_SET( 10, event );
+				PMEVTYPER_WRITE( 10, event );
 				break;
 			case 11 :
-				PMEVTYPER_SET( 11, event );
+				PMEVTYPER_WRITE( 11, event );
 				break;
 			case 12 :
-				PMEVTYPER_SET( 12, event );
+				PMEVTYPER_WRITE( 12, event );
 				break;
 			case 13 :
-				PMEVTYPER_SET( 13, event );
+				PMEVTYPER_WRITE( 13, event );
 				break;
 			case 14 :
-				PMEVTYPER_SET( 14, event );
+				PMEVTYPER_WRITE( 14, event );
 				break;
 			case 15 :
-				PMEVTYPER_SET( 15, event );
+				PMEVTYPER_WRITE( 15, event );
 				break;
 			case 16 :
-				PMEVTYPER_SET( 16, event );
+				PMEVTYPER_WRITE( 16, event );
 				break;
 			case 17 :
-				PMEVTYPER_SET( 17, event );
+				PMEVTYPER_WRITE( 17, event );
 				break;
 			case 18 :
-				PMEVTYPER_SET( 18, event );
+				PMEVTYPER_WRITE( 18, event );
 				break;
 			case 19 :
-				PMEVTYPER_SET( 19, event );
+				PMEVTYPER_WRITE( 19, event );
 				break;
 			case 20 :
-				PMEVTYPER_SET( 20, event );
+				PMEVTYPER_WRITE( 20, event );
 				break;
 			case 21 :
-				PMEVTYPER_SET( 21, event );
+				PMEVTYPER_WRITE( 21, event );
 				break;
 			case 22 :
-				PMEVTYPER_SET( 22, event );
+				PMEVTYPER_WRITE( 22, event );
 				break;
 			case 23 :
-				PMEVTYPER_SET( 23, event );
+				PMEVTYPER_WRITE( 23, event );
 				break;
 			case 24 :
-				PMEVTYPER_SET( 24, event );
+				PMEVTYPER_WRITE( 24, event );
 				break;
 			case 25 :
-				PMEVTYPER_SET( 25, event );
+				PMEVTYPER_WRITE( 25, event );
 				break;
 			case 26 :
-				PMEVTYPER_SET( 26, event );
+				PMEVTYPER_WRITE( 26, event );
 				break;
 			case 27 :
-				PMEVTYPER_SET( 27, event );
+				PMEVTYPER_WRITE( 27, event );
 				break;
 			case 28 :
-				PMEVTYPER_SET( 28, event );
+				PMEVTYPER_WRITE( 28, event );
 				break;
 			case 29 :
-				PMEVTYPER_SET( 29, event );
+				PMEVTYPER_WRITE( 29, event );
 				break;
 			case 30 :
-				PMEVTYPER_SET( 30, event );
+				PMEVTYPER_WRITE( 30, event );
 				break;
 #endif
 		}
 	}
 
-	static inline unsigned long pmevcntr_get(unsigned long n) {
+	static inline unsigned long pmevcntr_read(unsigned n) {
 		unsigned long event;
 		switch(n) {
 			case 0 :
-				PMEVCNTR_GET( 0, event );
+				PMEVCNTR_READ( 0, event );
 				break;
 			case 1 :
-				PMEVCNTR_GET( 1, event );
+				PMEVCNTR_READ( 1, event );
 				break;
 			case 2 :
-				PMEVCNTR_GET( 2, event );
+				PMEVCNTR_READ( 2, event );
 				break;
 			case 3 :
-				PMEVCNTR_GET( 3, event );
+				PMEVCNTR_READ( 3, event );
 				break;
 			case 4 :
-				PMEVCNTR_GET( 4, event );
+				PMEVCNTR_READ( 4, event );
 				break;
 			case 5 :
-				PMEVCNTR_GET( 5, event );
+				PMEVCNTR_READ( 5, event );
 				break;
 			case 6 :
-				PMEVCNTR_GET( 6, event );
+				PMEVCNTR_READ( 6, event );
 				break;
 			case 7 :
-				PMEVCNTR_GET( 7, event );
+				PMEVCNTR_READ( 7, event );
 				break;
 #if PMEVCNTR_MAX > 7
 			case 8 :
-				PMEVCNTR_GET( 8, event );
+				PMEVCNTR_READ( 8, event );
 				break;
 			case 9 :
-				PMEVCNTR_GET( 9, event );
+				PMEVCNTR_READ( 9, event );
 				break;
 			case 10 :
-				PMEVCNTR_GET( 10, event );
+				PMEVCNTR_READ( 10, event );
 				break;
 			case 11 :
-				PMEVCNTR_GET( 11, event );
+				PMEVCNTR_READ( 11, event );
 				break;
 			case 12 :
-				PMEVCNTR_GET( 12, event );
+				PMEVCNTR_READ( 12, event );
 				break;
 			case 13 :
-				PMEVCNTR_GET( 13, event );
+				PMEVCNTR_READ( 13, event );
 				break;
 			case 14 :
-				PMEVCNTR_GET( 14, event );
+				PMEVCNTR_READ( 14, event );
 				break;
 			case 15 :
-				PMEVCNTR_GET( 15, event );
+				PMEVCNTR_READ( 15, event );
 				break;
 			case 16 :
-				PMEVCNTR_GET( 16, event );
+				PMEVCNTR_READ( 16, event );
 				break;
 			case 17 :
-				PMEVCNTR_GET( 17, event );
+				PMEVCNTR_READ( 17, event );
 				break;
 			case 18 :
-				PMEVCNTR_GET( 18, event );
+				PMEVCNTR_READ( 18, event );
 				break;
 			case 19 :
-				PMEVCNTR_GET( 19, event );
+				PMEVCNTR_READ( 19, event );
 				break;
 			case 20 :
-				PMEVCNTR_GET( 20, event );
+				PMEVCNTR_READ( 20, event );
 				break;
 			case 21 :
-				PMEVCNTR_GET( 21, event );
+				PMEVCNTR_READ( 21, event );
 				break;
 			case 22 :
-				PMEVCNTR_GET( 22, event );
+				PMEVCNTR_READ( 22, event );
 				break;
 			case 23 :
-				PMEVCNTR_GET( 23, event );
+				PMEVCNTR_READ( 23, event );
 				break;
 			case 24 :
-				PMEVCNTR_GET( 24, event );
+				PMEVCNTR_READ( 24, event );
 				break;
 			case 25 :
-				PMEVCNTR_GET( 25, event );
+				PMEVCNTR_READ( 25, event );
 				break;
 			case 26 :
-				PMEVCNTR_GET( 26, event );
+				PMEVCNTR_READ( 26, event );
 				break;
 			case 27 :
-				PMEVCNTR_GET( 27, event );
+				PMEVCNTR_READ( 27, event );
 				break;
 			case 28 :
-				PMEVCNTR_GET( 28, event );
+				PMEVCNTR_READ( 28, event );
 				break;
 			case 29 :
-				PMEVCNTR_GET( 29, event );
+				PMEVCNTR_READ( 29, event );
 				break;
 			case 30 :
-				PMEVCNTR_GET( 30, event );
+				PMEVCNTR_READ( 30, event );
 				break;
 #endif
 		}
@@ -455,101 +457,101 @@
 		return event;
 	}
 
-	static inline void pmevcntr_set(unsigned long n, unsigned long event) {
+	static inline void pmevcntr_write(unsigned n, unsigned long event) {
 		switch(n) {
 			case 0 :
-				PMEVCNTR_SET( 0, event );
+				PMEVCNTR_WRITE( 0, event );
 				break;
 			case 1 :
-				PMEVCNTR_SET( 1, event );
+				PMEVCNTR_WRITE( 1, event );
 				break;
 			case 2 :
-				PMEVCNTR_SET( 2, event );
+				PMEVCNTR_WRITE( 2, event );
 				break;
 			case 3 :
-				PMEVCNTR_SET( 3, event );
+				PMEVCNTR_WRITE( 3, event );
 				break;
 			case 4 :
-				PMEVCNTR_SET( 4, event );
+				PMEVCNTR_WRITE( 4, event );
 				break;
 			case 5 :
-				PMEVCNTR_SET( 5, event );
+				PMEVCNTR_WRITE( 5, event );
 				break;
 			case 6 :
-				PMEVCNTR_SET( 6, event );
+				PMEVCNTR_WRITE( 6, event );
 				break;
 			case 7 :
-				PMEVCNTR_SET( 7, event );
+				PMEVCNTR_WRITE( 7, event );
 				break;
 #if PMEVCNTR_MAX > 7
 			case 8 :
-				PMEVCNTR_SET( 8, event );
+				PMEVCNTR_WRITE( 8, event );
 				break;
 			case 9 :
-				PMEVCNTR_SET( 9, event );
+				PMEVCNTR_WRITE( 9, event );
 				break;
 			case 10 :
-				PMEVCNTR_SET( 10, event );
+				PMEVCNTR_WRITE( 10, event );
 				break;
 			case 11 :
-				PMEVCNTR_SET( 11, event );
+				PMEVCNTR_WRITE( 11, event );
 				break;
 			case 12 :
-				PMEVCNTR_SET( 12, event );
+				PMEVCNTR_WRITE( 12, event );
 				break;
 			case 13 :
-				PMEVCNTR_SET( 13, event );
+				PMEVCNTR_WRITE( 13, event );
 				break;
 			case 14 :
-				PMEVCNTR_SET( 14, event );
+				PMEVCNTR_WRITE( 14, event );
 				break;
 			case 15 :
-				PMEVCNTR_SET( 15, event );
+				PMEVCNTR_WRITE( 15, event );
 				break;
 			case 16 :
-				PMEVCNTR_SET( 16, event );
+				PMEVCNTR_WRITE( 16, event );
 				break;
 			case 17 :
-				PMEVCNTR_SET( 17, event );
+				PMEVCNTR_WRITE( 17, event );
 				break;
 			case 18 :
-				PMEVCNTR_SET( 18, event );
+				PMEVCNTR_WRITE( 18, event );
 				break;
 			case 19 :
-				PMEVCNTR_SET( 19, event );
+				PMEVCNTR_WRITE( 19, event );
 				break;
 			case 20 :
-				PMEVCNTR_SET( 20, event );
+				PMEVCNTR_WRITE( 20, event );
 				break;
 			case 21 :
-				PMEVCNTR_SET( 21, event );
+				PMEVCNTR_WRITE( 21, event );
 				break;
 			case 22 :
-				PMEVCNTR_SET( 22, event );
+				PMEVCNTR_WRITE( 22, event );
 				break;
 			case 23 :
-				PMEVCNTR_SET( 23, event );
+				PMEVCNTR_WRITE( 23, event );
 				break;
 			case 24 :
-				PMEVCNTR_SET( 24, event );
+				PMEVCNTR_WRITE( 24, event );
 				break;
 			case 25 :
-				PMEVCNTR_SET( 25, event );
+				PMEVCNTR_WRITE( 25, event );
 				break;
 			case 26 :
-				PMEVCNTR_SET( 26, event );
+				PMEVCNTR_WRITE( 26, event );
 				break;
 			case 27 :
-				PMEVCNTR_SET( 27, event );
+				PMEVCNTR_WRITE( 27, event );
 				break;
 			case 28 :
-				PMEVCNTR_SET( 28, event );
+				PMEVCNTR_WRITE( 28, event );
 				break;
 			case 29 :
-				PMEVCNTR_SET( 29, event );
+				PMEVCNTR_WRITE( 29, event );
 				break;
 			case 30 :
-				PMEVCNTR_SET( 30, event );
+				PMEVCNTR_WRITE( 30, event );
 				break;
 #endif
 		}
@@ -558,19 +560,19 @@
 	//This page suggests only bits 0-9 of PMEVTYPER are used to define event:
 	//https://developer.arm.com/docs/ddi0595/h/aarch32-system-registers/pmevtypern
 
-	static inline unsigned long pmevtyper_get_event(unsigned n) {
-		unsigned mask = (1 << 11) - 1; //Mask all but bits 9:0
-		return pmevtyper_get(n) & mask;
+	static inline unsigned long pmu_get_eventtype(unsigned n) {
+		unsigned long mask = (1 << 11) - 1; //Mask all but bits 9:0
+		return pmevtyper_read(n) & mask;
 	}
 
-	static inline void pmevtyper_set_event(unsigned n, unsigned long event) {
-		unsigned mask = ( (~0) << 10 ); //Keep all but bits 9:0
-		event |= (pmevtyper_get(n) & mask);
-		pmevtyper_set(n, event);
+	static inline void pmu_set_eventtype(unsigned n, unsigned long event) {
+		unsigned long mask = ( (~0) << 10 ); //Keep all but bits 9:0
+		event |= (pmevtyper_read(n) & mask);
+		pmevtyper_write(n, event);
 	}
 
 	//Reset all event counters
-	static inline void pmevcntr_reset(void) {
+	static inline void pmu_event_reset(void) {
 		pmcr_set(PMCR_EVENT_COUNTER_RESET);
 	}
 
@@ -580,19 +582,19 @@
 
 	static inline void pmccntr_enable(void) {
 		pmcr_enable();
-		pmcnten_set(PMCNTEN_CYCLE_CTR);
+		pmcnten_write(PMCNTEN_CYCLE_CTR);
 	}
 
-	static inline void pmccntr_reset(void) {
+	static inline void pmu_cycle_reset(void) {
 		pmcr_set(PMCR_CYCLE_COUNTER_RESET);
 	}
 
 	static inline void pmccntr_set(char cycles_64_bit, char count_every_64) {
 		pmccntr_enable();		
 		if (cycles_64_bit) pmcr_set(PMCR_CYCLE_COUNTER_64_BITS);
-		else pmcr_clear(PMCR_CYCLE_COUNTER_64_BITS);
+		else pmcr_unset(PMCR_CYCLE_COUNTER_64_BITS);
 		if (count_every_64) pmcr_set(PMCR_CYCLE_COUNT_EVERY_64);
-		else pmcr_clear(PMCR_CYCLE_COUNT_EVERY_64);
+		else pmcr_unset(PMCR_CYCLE_COUNT_EVERY_64);
 		pmccntr_reset();
 	}
 
@@ -607,7 +609,7 @@
 
 	//Get cycle count value
 	static inline unsigned long long pmccntr_get(void) {
-		register unsigned long pmcr = pmcr_get();
+		register unsigned long pmcr = pmcr_read();
 		if(pmcr & PMCR_CYCLE_COUNTER_64_BITS) {
 			unsigned long low, high;
 			asm volatile ("MRRC p15, 0, %0, %1, c9" : "=r" (low), "=r" (high));
@@ -627,11 +629,11 @@
 	//PMUSERENR: Performance Monitors User Enable Register
 	//Enable and disable performance monitoring from userspace
 	
-	static inline void pmuser_enable() {
+	static inline void pmu_user_enable() {
 		asm volatile ("MCR p15, 0, %0, c9, c14, 0" :: "r" (1));
 	}
 
-	static inline void pmuser_disable() {
+	static inline void pmu_user_disable() {
 		asm volatile ("MCR p15, 0, %0, c9, c14, 0" :: "r" (0));
 	}
 
@@ -639,13 +641,13 @@
 	//https://developer.arm.com/documentation/ddi0500/j/Performance-Monitor-Unit/AArch32-PMU-register-descriptions/Performance-Monitors-Common-Event-Identification-Register-0?lang=en
 	//https://developer.arm.com/documentation/ddi0500/j/Performance-Monitor-Unit/AArch32-PMU-register-descriptions/Performance-Monitors-Common-Event-Identification-Register-1?lang=en
 	
-	static inline unsigned long pmceid0_get() {
+	static inline unsigned long pmceid0_read() {
 		unsigned long x = 0;
 		asm volatile ("MCR p15, 0, %0, c9, c12, 6" : "=r" (x));
 		return x;
 	}
 
-	static inline unsigned long pmceid1_get() {
+	static inline unsigned long pmceid1_read() {
 		unsigned long x = 0;
 		asm volatile ("MCR p15, 0, %0, c9, c12, 7" : "=r" (x));
 		return x;
@@ -656,23 +658,23 @@
 
 	//Enumerate flags for event library
 	//Flags are not tied to the architecture, and are specific to our library
-	const unsigned PMC_EVENTFLAG_64BIT = 1 << 0;
+	const static unsigned long PMU_EVENTFLAG_64BIT = 1 << 0;
 
 	//Return values for event library
-	const int PMC_RETURN_SUCCESS = 0;
-	const int PMC_RETURN_EVENT_NO_WATCH = -1;
-	const int PMC_RETURN_EVENT_NO_AVAIL = -2;
-	const int PMC_RETURN_NO_OPEN_SLOT = -3;
-	const int PMC_RETURN_EVENT_ALREADY = -4;
-	const int PMC_RETURN_BAD_PTR = -5;
+	const static int PMU_RETURN_SUCCESS = 0;
+	const static int PMU_RETURN_EVENT_NO_WATCH = -1;
+	const static int PMU_RETURN_EVENT_NO_AVAIL = -2;
+	const static int PMU_RETURN_NO_OPEN_SLOT = -3;
+	const static int PMU_RETURN_EVENT_ALREADY = -4;
+	const static int PMU_RETURN_BAD_PTR = -5;
 
 	//Public Functions
-	char pmc_event_available(unsigned long event);
-	int pmc_event_add(unsigned long event, unsigned flags);
-	int pmc_event_remove(unsigned long event, unsigned flags);
-	int pmc_event_reset(unsigned long event, unsigned flags);
-	int pmc_event_read_fast(unsigned long event, unsigned flags, unsigned long * value);
-	int pmc_event_read(unsigned long event, unsigned flags, unsigned long long * value);
+	char pmu_event_available(unsigned long event);
+	int pmu_event_add(unsigned long event, unsigned flags);
+	int pmu_event_remove(unsigned long event, unsigned flags);
+	int pmu_event_reset(unsigned long event, unsigned flags);
+	int pmu_event_read_fast(unsigned long event, unsigned flags, unsigned long * value);
+	int pmu_event_read(unsigned long event, unsigned flags, unsigned long long * value);
 
 
 #endif //__ASMARM_ARCH_PERFMON_H
