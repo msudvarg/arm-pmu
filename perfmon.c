@@ -1,6 +1,6 @@
 #include "perfmon.h"
 
-//To use this library, first call pmcr_enable()
+//To use this library, first call pmu_enable()
 
 //Helper Functions
 

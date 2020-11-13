@@ -98,12 +98,15 @@
 
 //PMCNTEN: Performance Monitors Count Enable
 //https://developer.arm.com/docs/ddi0595/f/aarch32-system-registers/pmcntenset
+//Writing a 1 to a bit in PMCNTENSET enables the corresponding event counter,
+//but writing a 0 does nothing.
+//To clear an event counter, write 1 to the corresponding bit in PMCNTENCLR
 
 	//Bits 0-30 correspond to event counters, if available
 	const static unsigned long PMCNTEN_CYCLE_CTR = 1 << 31;
 
 	//Get current flags from PMCNTEN
-	static inline unsigned long pmcnten_read(void) {
+	static inline unsigned long pmcntenset_read(void) {
 		unsigned long x = 0;
 		asm volatile ("MRC p15, 0, %0, c9, c12, 1\t\n" : "=r" (x));
 		return x;
@@ -111,15 +114,31 @@
 
 	//Set PMCNTEN flags specified (writing 0 to a bit does nothing)
 	//Set with the PMCNTENSET register
-	static inline void pmcnten_write(unsigned long x) {
+	static inline void pmcntenset_write(unsigned long x) {
 		asm volatile ("MCR p15, 0, %0, c9, c12, 1\t\n" :: "r" (x));
 	}
 
 	//Clear specified PMCR flags (writing 0 to a bit does nothing)
 	//Clear with the PMCNTENCLR register
-	static inline void pmcnten_clear(unsigned long x) {
+	static inline unsigned long pmcntenclr_read(void) {
+		unsigned long x = 0;
+		asm volatile ("MRC p15, 0, %0, c9, c12, 2\t\n" : "=r" (x));
+		return x;
+	}
+
+	static inline void pmcntenclr_write(unsigned long x) {
 		asm volatile ("MCR p15, 0, %0, c9, c12, 2\t\n" :: "r" (x));
 	}
+
+	static inline void pmcnten_set(unsigned long x) {
+		pmcntenset_write(x);
+	}
+
+	static inline void pmcnten_unset(unsigned long x) {
+		pmcntenclr_write(x);
+	}
+
+
 
 
 //PMEVCNTR: Performance Monitor Event Counter Registers
@@ -560,19 +579,19 @@
 	//This page suggests only bits 0-9 of PMEVTYPER are used to define event:
 	//https://developer.arm.com/docs/ddi0595/h/aarch32-system-registers/pmevtypern
 
-	static inline unsigned long pmu_get_eventtype(unsigned n) {
+	static inline unsigned long pmevtyper_get(unsigned n) {
 		unsigned long mask = (1 << 11) - 1; //Mask all but bits 9:0
 		return pmevtyper_read(n) & mask;
 	}
 
-	static inline void pmu_set_eventtype(unsigned n, unsigned long event) {
+	static inline void pmevtyper_set(unsigned n, unsigned long event) {
 		unsigned long mask = ( (~0) << 10 ); //Keep all but bits 9:0
 		event |= (pmevtyper_read(n) & mask);
 		pmevtyper_write(n, event);
 	}
 
 	//Reset all event counters
-	static inline void pmu_event_reset(void) {
+	static inline void pmevcntr_reset(void) {
 		pmcr_set(PMCR_EVENT_COUNTER_RESET);
 	}
 
@@ -581,11 +600,11 @@
 
 
 	static inline void pmccntr_enable(void) {
-		pmcr_enable();
+		pmu_enable();
 		pmcnten_write(PMCNTEN_CYCLE_CTR);
 	}
 
-	static inline void pmu_cycle_reset(void) {
+	static inline void pmccntr_reset(void) {
 		pmcr_set(PMCR_CYCLE_COUNTER_RESET);
 	}
 
