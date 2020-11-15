@@ -5,10 +5,10 @@
 //Helper Functions
 
     //Determine which bits are set
-    unsigned long pmcnten_get() {
+    unsigned pmcnten_get() {
 
         unsigned nevents = pmu_nevents(); //Number of event registers available
-        unsigned long mask = (1 << nevents) - 1; //Mask out first nevents bits
+        unsigned mask = (1 << nevents) - 1; //Mask out first nevents bits
         return pmcntenset_read() & mask; //Determine which event registers are set
 
     }
@@ -16,7 +16,7 @@
     //Find open bits, return error if none available
     int pmcnten_get_open(unsigned flags) {
 
-        unsigned long set = pmcnten_get();
+        unsigned set = pmcnten_get();
         unsigned nevents = pmu_nevents();
 
         //Need to chain two registers
@@ -40,11 +40,11 @@
 
     //Find which bit corresponds to provided event, return error if none
     //Does not check if event is available on this platform
-    int pmcnten_get_event_bit(unsigned long event) {
+    int pmcnten_get_event_bit(unsigned event) {
 
-        unsigned long set = pmcnten_get();        
+        unsigned set = pmcnten_get();        
         unsigned nevents = pmu_nevents();
-        unsigned long event_get;
+        unsigned event_get;
 
         for (int i = 0; i < nevents; i++) {
             //Is this counter enabled?
@@ -62,7 +62,7 @@
 //Public Functions
     
     //Check if event is available on this platform
-    char pmu_event_available(unsigned long event) {
+    char pmu_event_available(unsigned event) {
 
         //Only 64 events can be defined
         if (event > 63) return 0;
@@ -81,7 +81,7 @@
 
     //Adds event to monitoring
     //TODO: Should we also reset event count here?
-	int pmu_event_add(unsigned long event, unsigned flags) {
+	int pmu_event_add(unsigned event, unsigned flags) {
 
         //Check if event is available on this platform
         if (!pmu_event_available(event)) return PMU_RETURN_EVENT_NO_AVAIL;
@@ -109,7 +109,7 @@
 
     //Remove event from monitoring
     //TODO: Should we also reset event count here?
-	int pmu_event_remove(unsigned long event, unsigned flags) {
+	int pmu_event_remove(unsigned event, unsigned flags) {
 
         //Check if event is being monitored
         int bit = pmcnten_get_event_bit(event);
@@ -134,7 +134,7 @@
     }
 
     //Reset event count
-	int pmu_event_reset(unsigned long event, unsigned flags) {
+	int pmu_event_reset(unsigned event, unsigned flags) {
 
         //Check if event is being monitored
         int bit = pmcnten_get_event_bit(event);
@@ -160,7 +160,7 @@
 
     //Get lower 32-bits of event count
     //On success, return event counter register index
-	int pmu_event_read_32(unsigned long event, unsigned flags, unsigned long * value) {
+	int pmu_event_read_32(unsigned event, unsigned flags, unsigned * value) {
 
         //Check if event is being monitored
         int bit = pmcnten_get_event_bit(event);
@@ -176,9 +176,9 @@
 
     //Get event count value
     //On success, return event counter register index
-	int pmu_event_get(unsigned long event, unsigned flags, unsigned long long * value) {
+	int pmu_event_get(unsigned event, unsigned flags, unsigned long long * value) {
 
-        unsigned long low, high;
+        unsigned low, high;
         low = high = 0;
 
         int bit = pmu_event_read_fast(event, flags, &low);

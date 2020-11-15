@@ -22,63 +22,63 @@
 //7 on Arm Cortex-A53 in AARCH32 mode
 //TODO: Switch statements that need this should be wrapped for every value
 #define PMEVCNTR_MAX 7
-const static unsigned long SET = 1;
-const static unsigned long CLR = 0;
+const static unsigned SET = 1;
+const static unsigned CLR = 0;
 
 //PMCR: Performance Monitor Control Register
 //https://developer.arm.com/documentation/ddi0500/j/Performance-Monitor-Unit/AArch32-PMU-register-descriptions/Performance-Monitors-Control-Register?lang=en
 
 	//Enumerate bits in register
-	const static unsigned long PMCR_ENABLE_COUNTERS = 1 << 0;
-	const static unsigned long PMCR_EVENT_COUNTER_RESET = 1 << 1;
-	const static unsigned long PMCR_CYCLE_COUNTER_RESET = 1 << 2;
-	const static unsigned long PMCR_CYCLE_COUNT_EVERY_64 = 1 << 3; //Increment cycle count every 64 cycles
-	const static unsigned long PMCR_EXPORT_ENABLE = 1 << 4;
-	const static unsigned long PMCR_CYCLE_COUNTER_DISABLE = 1 << 5;
-	const static unsigned long PMCR_CYCLE_COUNTER_64_BITS = 1 << 6; //Cycle counter overflows at 64 bits instead of 32
-	const static unsigned long PMCR_NEVENTS_SHIFT = 11; //Shift bits for PMCR_NEVENTS
-	const static unsigned long PMCR_NEVENTS = 0b11111 << PMCR_NEVENTS_SHIFT; //Number of event counters available
+	const static unsigned PMCR_ENABLE_COUNTERS = 1 << 0;
+	const static unsigned PMCR_EVENT_COUNTER_RESET = 1 << 1;
+	const static unsigned PMCR_CYCLE_COUNTER_RESET = 1 << 2;
+	const static unsigned PMCR_CYCLE_COUNT_EVERY_64 = 1 << 3; //Increment cycle count every 64 cycles
+	const static unsigned PMCR_EXPORT_ENABLE = 1 << 4;
+	const static unsigned PMCR_CYCLE_COUNTER_DISABLE = 1 << 5;
+	const static unsigned PMCR_CYCLE_COUNTER_64_BITS = 1 << 6; //Cycle counter overflows at 64 bits instead of 32
+	const static unsigned PMCR_NEVENTS_SHIFT = 11; //Shift bits for PMCR_NEVENTS
+	const static unsigned PMCR_NEVENTS = 0b11111 << PMCR_NEVENTS_SHIFT; //Number of event counters available
 
 	//Writable bits
-	const static unsigned long PMCR_WRITABLE = PMCR_ENABLE_COUNTERS | PMCR_EVENT_COUNTER_RESET
+	const static unsigned PMCR_WRITABLE = PMCR_ENABLE_COUNTERS | PMCR_EVENT_COUNTER_RESET
 								|  PMCR_CYCLE_COUNTER_RESET | PMCR_CYCLE_COUNT_EVERY_64
 								| PMCR_EXPORT_ENABLE | PMCR_CYCLE_COUNTER_DISABLE
 								| PMCR_CYCLE_COUNTER_64_BITS;
 
 	//Readable bits			
-	const static unsigned long PMCR_READABLE = PMCR_ENABLE_COUNTERS | PMCR_CYCLE_COUNT_EVERY_64
+	const static unsigned PMCR_READABLE = PMCR_ENABLE_COUNTERS | PMCR_CYCLE_COUNT_EVERY_64
 								| PMCR_EXPORT_ENABLE | PMCR_CYCLE_COUNTER_DISABLE
 								| PMCR_CYCLE_COUNTER_64_BITS | PMCR_NEVENTS;
 
 	//Get current flags from PMCR
-	static inline unsigned long pmcr_read(void) {
-		unsigned long x = 0;
+	static inline unsigned pmcr_read(void) {
+		unsigned x = 0;
 		asm volatile ("MRC p15, 0, %0, c9, c12, 0\t\n" : "=r" (x));
 		return x;
 	}
 
 	//Write to PMCR register
-	static inline void pmcr_write(unsigned long x) {
+	static inline void pmcr_write(unsigned x) {
 		asm volatile ("MCR p15, 0, %0, c9, c12, 0\t\n" :: "r" (x));
 	}
 
 	//Set PMCR flags specified, keeping other flags as-is
-	static inline void pmcr_set(unsigned long x) {
+	static inline void pmcr_set(unsigned x) {
 		pmcr_write(pmcr_read() | x);
 	}
 
 	//Clear specified PMCR flags, keeping other flags as-is
-	static inline void pmcr_unset(unsigned long x) {
+	static inline void pmcr_unset(unsigned x) {
 		pmcr_write(pmcr_read() & ~x);
 	}
 
 	//Check if one or more PMCR flags are set
-	static inline char pmcr_isset(unsigned long x) {
+	static inline char pmcr_isset(unsigned x) {
 		return (pmcr_read() & x) == x;
 	}
 
 	//Set PMCR, confirming specified flags are writeable
-	static inline char pmcr_set_confirm(unsigned long x) {
+	static inline char pmcr_set_confirm(unsigned x) {
 		if ((x & PMCR_WRITABLE) == x) {
 			pmcr_set(x);
 			return 1;
@@ -88,7 +88,7 @@ const static unsigned long CLR = 0;
 
 	//Get number of events
 	static inline unsigned pmu_nevents() {
-		unsigned long nevents = pmcr_read() & PMCR_NEVENTS;
+		unsigned nevents = pmcr_read() & PMCR_NEVENTS;
 		return (unsigned) ( nevents >> PMCR_NEVENTS_SHIFT );
 	}
 
@@ -112,39 +112,39 @@ const static unsigned long CLR = 0;
 //	Reading either returns events enabled
 
 	//Bits 0-30 correspond to event counters, if available
-	const static unsigned long PMCNTEN_CYCLE_CTR = 1 << 31;
+	const static unsigned PMCNTEN_CYCLE_CTR = 1 << 31;
 
-	static inline unsigned long pmcntenset_read(void) {
-		unsigned long x = 0;
+	static inline unsigned pmcntenset_read(void) {
+		unsigned x = 0;
 		asm volatile ("MRC p15, 0, %0, c9, c12, 1\t\n" : "=r" (x));
 		return x;
 	}
 
 	//Set PMCNTEN flags specified (writing 0 to a bit does nothing)
 	//Set with the PMCNTENSET register
-	static inline void pmcntenset_write(unsigned long x) {
+	static inline void pmcntenset_write(unsigned x) {
 		asm volatile ("MCR p15, 0, %0, c9, c12, 1\t\n" :: "r" (x));
 	}
 
-	static inline unsigned long pmcntenclr_read(void) {
-		unsigned long x = 0;
+	static inline unsigned pmcntenclr_read(void) {
+		unsigned x = 0;
 		asm volatile ("MRC p15, 0, %0, c9, c12, 2\t\n" : "=r" (x));
 		return x;
 	}
 
 	//Clear specified PMCNTEN flags (writing 0 to a bit does nothing)
 	//Clear with the PMCNTENCLR register
-	static inline void pmcntenclr_write(unsigned long x) {
+	static inline void pmcntenclr_write(unsigned x) {
 		asm volatile ("MCR p15, 0, %0, c9, c12, 2\t\n" :: "r" (x));
 	}
 
 	//Set specified events
-	static inline void pmcnten_set(unsigned long x) {
+	static inline void pmcnten_set(unsigned x) {
 		pmcntenset_write(x);
 	}
 
 	//Clear specified events
-	static inline void pmcnten_unset(unsigned long x) {
+	static inline void pmcnten_unset(unsigned x) {
 		pmcntenclr_write(x);
 	}
 
@@ -165,20 +165,29 @@ const static unsigned long CLR = 0;
 //PMEVTYPER1-N: event type registers
 
 	//Enumerate events
-	const static unsigned long EVT_SW_INCR = 0x00;
-	const static unsigned long EVT_L1I_CACHE_REFILL = 0x01;
-	const static unsigned long EVT_L1I_TLB_REFILL = 0x02;
-	const static unsigned long EVT_L1D_CACHE_REFILL = 0x03;
-	const static unsigned long EVT_L1D_CACHE = 0x04;
-	const static unsigned long EVT_L1D_TLB_REFILL = 0x05;
-	const static unsigned long EVT_LD_RETIRED = 0x06;
-	const static unsigned long EVT_ST_RETIRED = 0x07;
-	const static unsigned long EVT_INST_RETIRED = 0x08;
-	//TODO: add remaining constants
-	const static unsigned long EVT_CPU_CYCLES = 0x11;
-	const static unsigned long EVT_BR_PRED = 0x12;
-	//TODO: add remaining constants
-	const static unsigned long EVT_CHAIN = 0x1E;
+	const static unsigned EVT_SW_INCR = 0x00;
+	const static unsigned EVT_L1I_CACHE_REFILL = 0x01;
+	const static unsigned EVT_L1I_TLB_REFILL = 0x02;
+	const static unsigned EVT_L1D_CACHE_REFILL = 0x03;
+	const static unsigned EVT_L1D_CACHE = 0x04;
+	const static unsigned EVT_L1D_TLB_REFILL = 0x05;
+	const static unsigned EVT_LD_RETIRED = 0x06;
+	const static unsigned EVT_ST_RETIRED = 0x07;
+	const static unsigned EVT_INST_RETIRED = 0x08;
+	const static unsigned EVT_EXC_TAKEN = 0x09;
+	const static unsigned EVT_EXC_RETURN = 0x0A;
+	const static unsigned EVT_EXC_RETURN = 0x0B;
+	const static unsigned EVT_PC_WRITE_RETIRED = 0x0C;
+	const static unsigned EVT_BR_IMMED_RETIRED = 0x0D;
+	const static unsigned EVT_BR_RETURN_RETIRED = 0x0E;
+	const static unsigned EVT_UNALIGNED_LDST_RETIRED = 0x0F;
+	const static unsigned EVT_BR_MIS_PRED = 0x10;
+	const static unsigned EVT_CPU_CYCLES = 0x11;
+	const static unsigned EVT_BR_PRED = 0x12;
+	const static unsigned EVT_MEM_ACCESS = 0x13;
+	const static unsigned EVT_L1ICACHE = 0x14;
+
+	const static unsigned EVT_CHAIN = 0x1E;
 	//TODO: add remaining constants
 
 	#define STR(x) #x
@@ -189,8 +198,8 @@ const static unsigned long CLR = 0;
 	#define PMEVCNTR_WRITE( N, COUNT ) asm volatile ("MRC p15, 0, %0, c14, c8, " XSTR(N) "\t\n" :: "r" (COUNT))
 
 	//Read from event type register n
-	static inline unsigned long pmevtyper_read(unsigned n) {
-		unsigned long event;
+	static inline unsigned pmevtyper_read(unsigned n) {
+		unsigned event;
 		switch(n) {
 			case 0 :
 				PMEVTYPER_READ( 0, event );
@@ -293,7 +302,7 @@ const static unsigned long CLR = 0;
 	}
 
 	//Write to event type register n
-	static inline void pmevtyper_write(unsigned n, unsigned long event) {
+	static inline void pmevtyper_write(unsigned n, unsigned event) {
 		switch(n) {
 			case 0 :
 				PMEVTYPER_WRITE( 0, event );
@@ -394,8 +403,8 @@ const static unsigned long CLR = 0;
 	}
 
 	//Read from event count register n
-	static inline unsigned long pmevcntr_read(unsigned n) {
-		unsigned long event;
+	static inline unsigned pmevcntr_read(unsigned n) {
+		unsigned event;
 		switch(n) {
 			case 0 :
 				PMEVCNTR_READ( 0, event );
@@ -498,7 +507,7 @@ const static unsigned long CLR = 0;
 	}
 
 	//Write to event counter register n
-	static inline void pmevcntr_write(unsigned n, unsigned long event) {
+	static inline void pmevcntr_write(unsigned n, unsigned event) {
 		switch(n) {
 			case 0 :
 				PMEVCNTR_WRITE( 0, event );
@@ -602,14 +611,14 @@ const static unsigned long CLR = 0;
 	//https://developer.arm.com/docs/ddi0595/h/aarch32-system-registers/pmevtypern
 
 	//Get event type from register n
-	static inline unsigned long pmevtyper_get(unsigned n) {
-		unsigned long mask = (1 << 11) - 1; //Mask all but bits 9:0
+	static inline unsigned pmevtyper_get(unsigned n) {
+		unsigned mask = (1 << 11) - 1; //Mask all but bits 9:0
 		return pmevtyper_read(n) & mask;
 	}
 
 	//Set event type for register n
-	static inline void pmevtyper_set(unsigned n, unsigned long event) {
-		unsigned long mask = ( (~0) << 10 ); //Keep all but bits 9:0
+	static inline void pmevtyper_set(unsigned n, unsigned event) {
+		unsigned mask = ( (~0) << 10 ); //Keep all but bits 9:0
 		event |= (pmevtyper_read(n) & mask);
 		pmevtyper_write(n, event);
 	}
@@ -648,15 +657,15 @@ const static unsigned long CLR = 0;
 	//TODO: Deal with count_every_64 option
 	
 	//Get lower 32-bits of cycle count
-	static inline unsigned long pmccntr_read_32(void) {
-			unsigned long cycle_count;
+	static inline unsigned pmccntr_read_32(void) {
+			unsigned cycle_count;
 			asm volatile ("MRC p15, 0, %0, c9, c13, 0" : "=r" (cycle_count));
 			return cycle_count;
 	}
 
 	//Get full 64-bits of cycle count
 	static inline unsigned long long pmccntr_read_64(void) {
-			unsigned long low, high;
+			unsigned low, high;
 			asm volatile ("MRRC p15, 0, %0, %1, c9" : "=r" (low), "=r" (high));
 			return ( (unsigned long long) low) |
 					( ( (unsigned long long) high ) << 32 );
@@ -664,7 +673,7 @@ const static unsigned long CLR = 0;
 
 	//Get cycle count value
 	static inline unsigned long long pmccntr_get(void) {
-		register unsigned long pmcr = pmcr_read();
+		register unsigned pmcr = pmcr_read();
 		if(pmcr & PMCR_CYCLE_COUNTER_64_BITS) {
 			return pmccntr_read_64();
 		}
@@ -680,13 +689,13 @@ const static unsigned long CLR = 0;
 	//PMUSERENR: Performance Monitors User Enable Register
 	//Enable and disable performance monitoring from userspace
 
-	static inline unsigned long pmuserenr_read(void) {
-		unsigned long x = 0;
+	static inline unsigned pmuserenr_read(void) {
+		unsigned x = 0;
 		asm volatile ("MRC p15, 0, %0, c9, c14, 0\t\n" : "=r" (x));
 		return x;
 	}
 
-	static inline void pmuserenr_write(unsigned long x) {
+	static inline void pmuserenr_write(unsigned x) {
 		asm volatile ("MCR p15, 0, %0, c9, c14, 0\t\n" :: "r" (x));
 	}
 	
@@ -702,23 +711,23 @@ const static unsigned long CLR = 0;
 	//https://developer.arm.com/documentation/ddi0500/j/Performance-Monitor-Unit/AArch32-PMU-register-descriptions/Performance-Monitors-Common-Event-Identification-Register-0?lang=en
 	//https://developer.arm.com/documentation/ddi0500/j/Performance-Monitor-Unit/AArch32-PMU-register-descriptions/Performance-Monitors-Common-Event-Identification-Register-1?lang=en
 	
-	static inline unsigned long pmceid0_read() {
-		unsigned long x = 0;
+	static inline unsigned pmceid0_read() {
+		unsigned x = 0;
 		asm volatile ("MCR p15, 0, %0, c9, c12, 6" : "=r" (x));
 		return x;
 	}
 
-	static inline char pmceid0_isset(unsigned long x) {
+	static inline char pmceid0_isset(unsigned x) {
 		return (pmceid0_read() & x) == x;
 	}
 
-	static inline unsigned long pmceid1_read() {
-		unsigned long x = 0;
+	static inline unsigned pmceid1_read() {
+		unsigned x = 0;
 		asm volatile ("MCR p15, 0, %0, c9, c12, 7" : "=r" (x));
 		return x;
 	}
 
-	static inline char pmceid1_isset(unsigned long x) {
+	static inline char pmceid1_isset(unsigned x) {
 		return (pmceid1_read() & x) == x;
 	}
 
@@ -727,7 +736,7 @@ const static unsigned long CLR = 0;
 
 	//Enumerate flags for event library
 	//Flags are not tied to the architecture, and are specific to our library
-	const static unsigned long PMU_EVENTFLAG_64BIT = 1 << 0;
+	const static unsigned PMU_EVENTFLAG_64BIT = 1 << 0;
 
 	//Return values for event library
 	const static int PMU_RETURN_SUCCESS = 0;
@@ -738,12 +747,12 @@ const static unsigned long CLR = 0;
 	const static int PMU_RETURN_BAD_PTR = -5;
 
 	//Public Functions
-	char pmu_event_available(unsigned long event);
-	int pmu_event_add(unsigned long event, unsigned flags);
-	int pmu_event_remove(unsigned long event, unsigned flags);
-	int pmu_event_reset(unsigned long event, unsigned flags);
-	int pmu_event_read_fast(unsigned long event, unsigned flags, unsigned long * value);
-	int pmu_event_read(unsigned long event, unsigned flags, unsigned long long * value);
+	char pmu_event_available(unsigned event);
+	int pmu_event_add(unsigned event, unsigned flags);
+	int pmu_event_remove(unsigned event, unsigned flags);
+	int pmu_event_reset(unsigned event, unsigned flags);
+	int pmu_event_read_fast(unsigned event, unsigned flags, unsigned * value);
+	int pmu_event_read(unsigned event, unsigned flags, unsigned long long * value);
 
 	/* TODO TODO TODO
 	Disable all:
