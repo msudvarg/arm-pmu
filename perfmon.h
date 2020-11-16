@@ -15,7 +15,15 @@
 * 
 * TODO: Add AARCH64 and other ARM versions
 * TODO: Add multicore support (each performance monitor is per-core)
-* TODO: Add overflow interrupt support
+* TODO: Add overflow interrupt support,
+*		with additional support for resetting event counts to -x
+*		to ensure an interrupt is raised every x occurances
+*
+*
+*** Additional Papers of Interest ***
+* https://www.usenix.org/system/files/conference/woot16/woot16-paper-spisak.pdf
+* https://community.arm.com/developer/ip-products/system/b/embedded-blog/posts/using-the-arm-performance-monitor-unit-pmu-linux-driver
+* https://www.usenix.org/system/files/conference/woot16/woot16-paper-spisak.pdf
 ******************************************************************************/
 
 //Architecture dependent max value that can be provided to Op2 assembly instruction to enumerate performance monitor event count registers
@@ -201,97 +209,157 @@ const static unsigned CLR = 0;
 	static inline unsigned pmevtyper_read(unsigned n) {
 		unsigned event;
 		switch(n) {
+#if NEVENTS_ARCH_MAX > 0
 			case 0 :
 				PMEVTYPER_READ( 0, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 1
 			case 1 :
 				PMEVTYPER_READ( 1, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 2
 			case 2 :
 				PMEVTYPER_READ( 2, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 3
 			case 3 :
 				PMEVTYPER_READ( 3, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 4
 			case 4 :
 				PMEVTYPER_READ( 4, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 5
 			case 5 :
 				PMEVTYPER_READ( 5, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 6
 			case 6 :
 				PMEVTYPER_READ( 6, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 7
 			case 7 :
 				PMEVTYPER_READ( 7, event );
 				break;
+#endif
 #if NEVENTS_ARCH_MAX > 8
 			case 8 :
 				PMEVTYPER_READ( 8, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 9
 			case 9 :
 				PMEVTYPER_READ( 9, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 10
 			case 10 :
 				PMEVTYPER_READ( 10, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 11
 			case 11 :
 				PMEVTYPER_READ( 11, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 12
 			case 12 :
 				PMEVTYPER_READ( 12, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 13
 			case 13 :
 				PMEVTYPER_READ( 13, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 14
 			case 14 :
 				PMEVTYPER_READ( 14, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 15
 			case 15 :
 				PMEVTYPER_READ( 15, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 16
 			case 16 :
 				PMEVTYPER_READ( 16, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 17
 			case 17 :
 				PMEVTYPER_READ( 17, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 18
 			case 18 :
 				PMEVTYPER_READ( 18, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 19
 			case 19 :
 				PMEVTYPER_READ( 19, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 20
 			case 20 :
 				PMEVTYPER_READ( 20, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 21
 			case 21 :
 				PMEVTYPER_READ( 21, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 22
 			case 22 :
 				PMEVTYPER_READ( 22, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 23
 			case 23 :
 				PMEVTYPER_READ( 23, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 24
 			case 24 :
 				PMEVTYPER_READ( 24, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 25
 			case 25 :
 				PMEVTYPER_READ( 25, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 26
 			case 26 :
 				PMEVTYPER_READ( 26, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 27
 			case 27 :
 				PMEVTYPER_READ( 27, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 28
 			case 28 :
 				PMEVTYPER_READ( 28, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 29
 			case 29 :
 				PMEVTYPER_READ( 29, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 30
 			case 30 :
 				PMEVTYPER_READ( 30, event );
 				break;
@@ -304,97 +372,157 @@ const static unsigned CLR = 0;
 	//Write to event type register n
 	static inline void pmevtyper_write(unsigned n, unsigned event) {
 		switch(n) {
+#if NEVENTS_ARCH_MAX > 0
 			case 0 :
 				PMEVTYPER_WRITE( 0, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 1
 			case 1 :
 				PMEVTYPER_WRITE( 1, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 2
 			case 2 :
 				PMEVTYPER_WRITE( 2, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 3
 			case 3 :
 				PMEVTYPER_WRITE( 3, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 4
 			case 4 :
 				PMEVTYPER_WRITE( 4, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 5
 			case 5 :
 				PMEVTYPER_WRITE( 5, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 6
 			case 6 :
 				PMEVTYPER_WRITE( 6, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 7
 			case 7 :
 				PMEVTYPER_WRITE( 7, event );
 				break;
+#endif
 #if NEVENTS_ARCH_MAX > 8
 			case 8 :
 				PMEVTYPER_WRITE( 8, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 9
 			case 9 :
 				PMEVTYPER_WRITE( 9, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 10
 			case 10 :
 				PMEVTYPER_WRITE( 10, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 11
 			case 11 :
 				PMEVTYPER_WRITE( 11, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 12
 			case 12 :
 				PMEVTYPER_WRITE( 12, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 13
 			case 13 :
 				PMEVTYPER_WRITE( 13, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 14
 			case 14 :
 				PMEVTYPER_WRITE( 14, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 15
 			case 15 :
 				PMEVTYPER_WRITE( 15, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 16
 			case 16 :
 				PMEVTYPER_WRITE( 16, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 17
 			case 17 :
 				PMEVTYPER_WRITE( 17, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 18
 			case 18 :
 				PMEVTYPER_WRITE( 18, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 19
 			case 19 :
 				PMEVTYPER_WRITE( 19, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 20
 			case 20 :
 				PMEVTYPER_WRITE( 20, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 21
 			case 21 :
 				PMEVTYPER_WRITE( 21, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 22
 			case 22 :
 				PMEVTYPER_WRITE( 22, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 23
 			case 23 :
 				PMEVTYPER_WRITE( 23, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 24
 			case 24 :
 				PMEVTYPER_WRITE( 24, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 25
 			case 25 :
 				PMEVTYPER_WRITE( 25, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 26
 			case 26 :
 				PMEVTYPER_WRITE( 26, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 27
 			case 27 :
 				PMEVTYPER_WRITE( 27, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 28
 			case 28 :
 				PMEVTYPER_WRITE( 28, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 29
 			case 29 :
 				PMEVTYPER_WRITE( 29, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 30
 			case 30 :
 				PMEVTYPER_WRITE( 30, event );
 				break;
@@ -406,97 +534,157 @@ const static unsigned CLR = 0;
 	static inline unsigned pmevcntr_read(unsigned n) {
 		unsigned event;
 		switch(n) {
+#if NEVENTS_ARCH_MAX > 0
 			case 0 :
 				PMEVCNTR_READ( 0, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 1
 			case 1 :
 				PMEVCNTR_READ( 1, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 2
 			case 2 :
 				PMEVCNTR_READ( 2, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 3
 			case 3 :
 				PMEVCNTR_READ( 3, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 4
 			case 4 :
 				PMEVCNTR_READ( 4, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 5
 			case 5 :
 				PMEVCNTR_READ( 5, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 6
 			case 6 :
 				PMEVCNTR_READ( 6, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 7
 			case 7 :
 				PMEVCNTR_READ( 7, event );
 				break;
+#endif
 #if NEVENTS_ARCH_MAX > 8
 			case 8 :
 				PMEVCNTR_READ( 8, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 9
 			case 9 :
 				PMEVCNTR_READ( 9, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 10
 			case 10 :
 				PMEVCNTR_READ( 10, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 11
 			case 11 :
 				PMEVCNTR_READ( 11, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 12
 			case 12 :
 				PMEVCNTR_READ( 12, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 13
 			case 13 :
 				PMEVCNTR_READ( 13, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 14
 			case 14 :
 				PMEVCNTR_READ( 14, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 15
 			case 15 :
 				PMEVCNTR_READ( 15, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 16
 			case 16 :
 				PMEVCNTR_READ( 16, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 17
 			case 17 :
 				PMEVCNTR_READ( 17, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 18
 			case 18 :
 				PMEVCNTR_READ( 18, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 19
 			case 19 :
 				PMEVCNTR_READ( 19, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 20
 			case 20 :
 				PMEVCNTR_READ( 20, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 21
 			case 21 :
 				PMEVCNTR_READ( 21, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 22
 			case 22 :
 				PMEVCNTR_READ( 22, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 23
 			case 23 :
 				PMEVCNTR_READ( 23, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 24
 			case 24 :
 				PMEVCNTR_READ( 24, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 25
 			case 25 :
 				PMEVCNTR_READ( 25, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 26
 			case 26 :
 				PMEVCNTR_READ( 26, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 27
 			case 27 :
 				PMEVCNTR_READ( 27, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 28
 			case 28 :
 				PMEVCNTR_READ( 28, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 29
 			case 29 :
 				PMEVCNTR_READ( 29, event );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 30
 			case 30 :
 				PMEVCNTR_READ( 30, event );
 				break;
@@ -509,97 +697,157 @@ const static unsigned CLR = 0;
 	//Write to event counter register n
 	static inline void pmevcntr_write(unsigned n, unsigned count) {
 		switch(n) {
+#if NEVENTS_ARCH_MAX > 0
 			case 0 :
 				PMEVCNTR_WRITE( 0, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 1
 			case 1 :
 				PMEVCNTR_WRITE( 1, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 2
 			case 2 :
 				PMEVCNTR_WRITE( 2, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 3
 			case 3 :
 				PMEVCNTR_WRITE( 3, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 4
 			case 4 :
 				PMEVCNTR_WRITE( 4, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 5
 			case 5 :
 				PMEVCNTR_WRITE( 5, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 6
 			case 6 :
 				PMEVCNTR_WRITE( 6, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 7
 			case 7 :
 				PMEVCNTR_WRITE( 7, count );
 				break;
+#endif
 #if NEVENTS_ARCH_MAX > 8
 			case 8 :
 				PMEVCNTR_WRITE( 8, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 9
 			case 9 :
 				PMEVCNTR_WRITE( 9, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 10
 			case 10 :
 				PMEVCNTR_WRITE( 10, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 11
 			case 11 :
 				PMEVCNTR_WRITE( 11, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 12
 			case 12 :
 				PMEVCNTR_WRITE( 12, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 13
 			case 13 :
 				PMEVCNTR_WRITE( 13, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 14
 			case 14 :
 				PMEVCNTR_WRITE( 14, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 15
 			case 15 :
 				PMEVCNTR_WRITE( 15, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 16
 			case 16 :
 				PMEVCNTR_WRITE( 16, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 17
 			case 17 :
 				PMEVCNTR_WRITE( 17, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 18
 			case 18 :
 				PMEVCNTR_WRITE( 18, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 19
 			case 19 :
 				PMEVCNTR_WRITE( 19, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 20
 			case 20 :
 				PMEVCNTR_WRITE( 20, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 21
 			case 21 :
 				PMEVCNTR_WRITE( 21, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 22
 			case 22 :
 				PMEVCNTR_WRITE( 22, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 23
 			case 23 :
 				PMEVCNTR_WRITE( 23, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 24
 			case 24 :
 				PMEVCNTR_WRITE( 24, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 25
 			case 25 :
 				PMEVCNTR_WRITE( 25, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 26
 			case 26 :
 				PMEVCNTR_WRITE( 26, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 27
 			case 27 :
 				PMEVCNTR_WRITE( 27, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 28
 			case 28 :
 				PMEVCNTR_WRITE( 28, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 29
 			case 29 :
 				PMEVCNTR_WRITE( 29, count );
 				break;
+#endif
+#if NEVENTS_ARCH_MAX > 30
 			case 30 :
 				PMEVCNTR_WRITE( 30, count );
 				break;
