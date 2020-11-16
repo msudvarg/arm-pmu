@@ -28,7 +28,6 @@
 
 //Architecture dependent max value that can be provided to Op2 assembly instruction to enumerate performance monitor event count registers
 //7 on Arm Cortex-A53 in AARCH32 mode
-//TODO: Switch statements that need this should be wrapped for every value
 #define NEVENTS_ARCH_MAX 8
 const static unsigned SET = 1;
 const static unsigned CLR = 0;
@@ -193,10 +192,19 @@ const static unsigned CLR = 0;
 	const static unsigned EVT_CPU_CYCLES = 0x11;
 	const static unsigned EVT_BR_PRED = 0x12;
 	const static unsigned EVT_MEM_ACCESS = 0x13;
-	const static unsigned EVT_L1ICACHE = 0x14;
-
+	const static unsigned EVT_L1I_CACHE = 0x14;
+	const static unsigned EVT_L1D_CACHE_WB = 0x15;
+	const static unsigned EVT_L2D_CACHE = 0x16;
+	const static unsigned EVT_L2D_CACHE_REFILL = 0x17;
+	const static unsigned EVT_L2D_CACHE_WB = 0x18;
+	const static unsigned EVT_BUS_ACCESS = 0x19;
+	const static unsigned EVT_MEMORY_ERROR = 0x1A;
+	const static unsigned EVT_INST_SPEC = 0x1B;
+	const static unsigned EVT_TTBR_WRITE_RETIRED = 0x1C;
+	const static unsigned EVT_BUS_CYCLES = 0x1D;
 	const static unsigned EVT_CHAIN = 0x1E;
-	//TODO: add remaining constants
+	const static unsigned EVT_L1D_CACHE_ALLOCATE = 0x1F;
+	const static unsigned EVT_L2D_CACHE_ALLOCATE = 0x20;
 
 	#define STR(x) #x
 	#define XSTR(s) STR(s)
