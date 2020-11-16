@@ -198,3 +198,16 @@
         return bit;
 
     }
+
+    //Disable and reset everything
+    void pmu_disable_all() {
+        //Disable all event counters
+        pmcntenclr_write(~0);
+
+        //Reset all event counters        
+        pmevcntr_reset_all();
+        pmccntr_reset();
+
+        //Disable PMU
+        pmu_disable();
+    }

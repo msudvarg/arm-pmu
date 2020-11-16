@@ -21,7 +21,7 @@
 //Architecture dependent max value that can be provided to Op2 assembly instruction to enumerate performance monitor event count registers
 //7 on Arm Cortex-A53 in AARCH32 mode
 //TODO: Switch statements that need this should be wrapped for every value
-#define PMEVCNTR_MAX 7
+#define NEVENTS_ARCH_MAX 8
 const static unsigned SET = 1;
 const static unsigned CLR = 0;
 
@@ -89,7 +89,7 @@ const static unsigned CLR = 0;
 	//Get number of events
 	static inline unsigned pmu_nevents() {
 		unsigned nevents = pmcr_read() & PMCR_NEVENTS;
-		return (unsigned) ( nevents >> PMCR_NEVENTS_SHIFT );
+		return nevents >> PMCR_NEVENTS_SHIFT;
 	}
 
 	//Enable event counting
@@ -176,7 +176,7 @@ const static unsigned CLR = 0;
 	const static unsigned EVT_INST_RETIRED = 0x08;
 	const static unsigned EVT_EXC_TAKEN = 0x09;
 	const static unsigned EVT_EXC_RETURN = 0x0A;
-	const static unsigned EVT_EXC_RETURN = 0x0B;
+	const static unsigned EVT_CID_WRITE_RETIRED = 0x0B;
 	const static unsigned EVT_PC_WRITE_RETIRED = 0x0C;
 	const static unsigned EVT_BR_IMMED_RETIRED = 0x0D;
 	const static unsigned EVT_BR_RETURN_RETIRED = 0x0E;
@@ -225,7 +225,7 @@ const static unsigned CLR = 0;
 			case 7 :
 				PMEVTYPER_READ( 7, event );
 				break;
-#if PMEVCNTR_MAX > 7
+#if NEVENTS_ARCH_MAX > 8
 			case 8 :
 				PMEVTYPER_READ( 8, event );
 				break;
@@ -328,7 +328,7 @@ const static unsigned CLR = 0;
 			case 7 :
 				PMEVTYPER_WRITE( 7, event );
 				break;
-#if PMEVCNTR_MAX > 7
+#if NEVENTS_ARCH_MAX > 8
 			case 8 :
 				PMEVTYPER_WRITE( 8, event );
 				break;
@@ -430,7 +430,7 @@ const static unsigned CLR = 0;
 			case 7 :
 				PMEVCNTR_READ( 7, event );
 				break;
-#if PMEVCNTR_MAX > 7
+#if NEVENTS_ARCH_MAX > 8
 			case 8 :
 				PMEVCNTR_READ( 8, event );
 				break;
@@ -533,7 +533,7 @@ const static unsigned CLR = 0;
 			case 7 :
 				PMEVCNTR_WRITE( 7, count );
 				break;
-#if PMEVCNTR_MAX > 7
+#if NEVENTS_ARCH_MAX > 8
 			case 8 :
 				PMEVCNTR_WRITE( 8, count );
 				break;
@@ -644,10 +644,7 @@ const static unsigned CLR = 0;
 //https://developer.arm.com/documentation/ddi0500/j/Performance-Monitor-Unit/AArch32-PMU-register-summary?lang=en
 
 
-	//We opt to call pmu_enable() here,
-	//since the cycle counter won't be enabled/disabled as much as the generic event counters
 	static inline void pmccntr_enable(void) {
-		pmu_enable();
 		pmcnten_set(PMCNTEN_CYCLE_CTR);
 	}
 
@@ -767,6 +764,7 @@ const static unsigned CLR = 0;
 	int pmu_event_reset(unsigned event, unsigned flags);
 	int pmu_event_read_32(unsigned event, unsigned flags, unsigned * value);
 	int pmu_event_read(unsigned event, unsigned flags, unsigned long long * value);
+	void pmu_disable_all(void);
 
 	/* TODO TODO TODO
 	Disable all:
@@ -784,5 +782,15 @@ const static unsigned CLR = 0;
 	so that pausing can disable a register without it presenting as "free" to use
 	*/
 
+//Perfmon State
+//Allow loading and unloading (e.g. in a kernel module)
+	void pmu_load(void);
+	void pmu_load_reset(void);
+	void pmu_unload(void);
+	void pmu_unload_reset(void);
+	extern unsigned state_pmcr;
+	extern unsigned state_pmcnten;
+	extern unsigned state_pmuserenr;
+	extern unsigned state_pmevtype[NEVENTS_ARCH_MAX];
 
 #endif //__ASMARM_ARCH_PERFMON_H
