@@ -1022,16 +1022,7 @@ const static unsigned CLR = 0;
 	int pmu_event_read(unsigned event, unsigned flags, unsigned long long * value);
 	void pmu_disable_all(void);
 
-	/* TODO TODO TODO
-	Disable all:
-
-	pmu_disable_all
-	Disable all event counters
-	Disable cycle counters
-	Reset all counters
-	Disable pmu
-
-	Should we save register states to local variables, so these can be restored on unload?
+	/* TODO
 
 	Should we provide pause/resume counting semantics?
 	This might require a separate array to track which registers are enabled/disabled
