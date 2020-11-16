@@ -80,7 +80,6 @@
     }
 
     //Adds event to monitoring
-    //TODO: Should we also reset event count here?
 	int pmu_event_add(unsigned event, unsigned flags) {
 
         //Check if event is available on this platform
@@ -94,21 +93,18 @@
         if (i < 0) return i;
 
         //Monitor event
-        pmcnten_enable(i);
-        pmevtyper_set(i, event);
-        //TODO: Should we reset event count here?
+        pmu_event_set(i, event);
 
         //Add 64-bit chaining if defined as flag
         if (flags & PMU_EVENTFLAG_64BIT) {
-            pmcnten_enable(i+1);
-            pmevtyper_set(i+1, EVT_CHAIN);
+            pmu_event_set(i+1, EVT_CHAIN);
         }
 
         return PMU_RETURN_SUCCESS;
     }
 
     //Remove event from monitoring
-    //TODO: Should we also reset event count here?
+    //We do not reset the count here in case we want to read the count after removal    
 	int pmu_event_remove(unsigned event, unsigned flags) {
 
         //Check if event is being monitored
@@ -146,13 +142,13 @@
 
             if ( pmevtyper_get(bit) == EVT_CHAIN) {
                 //If so, reset the chained counter
-                pmevtyper_set(bit, 0);
+                pmevcntr_reset(bit);
             }
 
         }
 
         //Reset the primary counter
-        pmevtyper_set(bit-1, 0);
+        pmevcntr_reset(bit-1);
 
         return PMU_RETURN_SUCCESS;
 
@@ -181,7 +177,7 @@
         unsigned low, high;
         low = high = 0;
 
-        int bit = pmu_event_read_fast(event, flags, &low);
+        int bit = pmu_event_read_32(event, flags, &low);
         if (bit < 0) return bit;
 
         //Check if 64-bit chaining is defined

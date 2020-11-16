@@ -507,101 +507,101 @@ const static unsigned CLR = 0;
 	}
 
 	//Write to event counter register n
-	static inline void pmevcntr_write(unsigned n, unsigned event) {
+	static inline void pmevcntr_write(unsigned n, unsigned count) {
 		switch(n) {
 			case 0 :
-				PMEVCNTR_WRITE( 0, event );
+				PMEVCNTR_WRITE( 0, count );
 				break;
 			case 1 :
-				PMEVCNTR_WRITE( 1, event );
+				PMEVCNTR_WRITE( 1, count );
 				break;
 			case 2 :
-				PMEVCNTR_WRITE( 2, event );
+				PMEVCNTR_WRITE( 2, count );
 				break;
 			case 3 :
-				PMEVCNTR_WRITE( 3, event );
+				PMEVCNTR_WRITE( 3, count );
 				break;
 			case 4 :
-				PMEVCNTR_WRITE( 4, event );
+				PMEVCNTR_WRITE( 4, count );
 				break;
 			case 5 :
-				PMEVCNTR_WRITE( 5, event );
+				PMEVCNTR_WRITE( 5, count );
 				break;
 			case 6 :
-				PMEVCNTR_WRITE( 6, event );
+				PMEVCNTR_WRITE( 6, count );
 				break;
 			case 7 :
-				PMEVCNTR_WRITE( 7, event );
+				PMEVCNTR_WRITE( 7, count );
 				break;
 #if PMEVCNTR_MAX > 7
 			case 8 :
-				PMEVCNTR_WRITE( 8, event );
+				PMEVCNTR_WRITE( 8, count );
 				break;
 			case 9 :
-				PMEVCNTR_WRITE( 9, event );
+				PMEVCNTR_WRITE( 9, count );
 				break;
 			case 10 :
-				PMEVCNTR_WRITE( 10, event );
+				PMEVCNTR_WRITE( 10, count );
 				break;
 			case 11 :
-				PMEVCNTR_WRITE( 11, event );
+				PMEVCNTR_WRITE( 11, count );
 				break;
 			case 12 :
-				PMEVCNTR_WRITE( 12, event );
+				PMEVCNTR_WRITE( 12, count );
 				break;
 			case 13 :
-				PMEVCNTR_WRITE( 13, event );
+				PMEVCNTR_WRITE( 13, count );
 				break;
 			case 14 :
-				PMEVCNTR_WRITE( 14, event );
+				PMEVCNTR_WRITE( 14, count );
 				break;
 			case 15 :
-				PMEVCNTR_WRITE( 15, event );
+				PMEVCNTR_WRITE( 15, count );
 				break;
 			case 16 :
-				PMEVCNTR_WRITE( 16, event );
+				PMEVCNTR_WRITE( 16, count );
 				break;
 			case 17 :
-				PMEVCNTR_WRITE( 17, event );
+				PMEVCNTR_WRITE( 17, count );
 				break;
 			case 18 :
-				PMEVCNTR_WRITE( 18, event );
+				PMEVCNTR_WRITE( 18, count );
 				break;
 			case 19 :
-				PMEVCNTR_WRITE( 19, event );
+				PMEVCNTR_WRITE( 19, count );
 				break;
 			case 20 :
-				PMEVCNTR_WRITE( 20, event );
+				PMEVCNTR_WRITE( 20, count );
 				break;
 			case 21 :
-				PMEVCNTR_WRITE( 21, event );
+				PMEVCNTR_WRITE( 21, count );
 				break;
 			case 22 :
-				PMEVCNTR_WRITE( 22, event );
+				PMEVCNTR_WRITE( 22, count );
 				break;
 			case 23 :
-				PMEVCNTR_WRITE( 23, event );
+				PMEVCNTR_WRITE( 23, count );
 				break;
 			case 24 :
-				PMEVCNTR_WRITE( 24, event );
+				PMEVCNTR_WRITE( 24, count );
 				break;
 			case 25 :
-				PMEVCNTR_WRITE( 25, event );
+				PMEVCNTR_WRITE( 25, count );
 				break;
 			case 26 :
-				PMEVCNTR_WRITE( 26, event );
+				PMEVCNTR_WRITE( 26, count );
 				break;
 			case 27 :
-				PMEVCNTR_WRITE( 27, event );
+				PMEVCNTR_WRITE( 27, count );
 				break;
 			case 28 :
-				PMEVCNTR_WRITE( 28, event );
+				PMEVCNTR_WRITE( 28, count );
 				break;
 			case 29 :
-				PMEVCNTR_WRITE( 29, event );
+				PMEVCNTR_WRITE( 29, count );
 				break;
 			case 30 :
-				PMEVCNTR_WRITE( 30, event );
+				PMEVCNTR_WRITE( 30, count );
 				break;
 #endif
 		}
@@ -623,8 +623,20 @@ const static unsigned CLR = 0;
 		pmevtyper_write(n, event);
 	}
 
+	//Reset specified event counter
+	static inline void pmevcntr_reset(unsigned n) {
+		pmevcntr_write(n, 0);
+	}
+
+	//Enable specified register n to monitor specified event
+	static inline void pmu_event_set(unsigned n, unsigned event) {		
+        pmcnten_enable(n);
+        pmevtyper_set(n, event);
+        pmevcntr_reset(n);
+	}
+
 	//Reset all event counters
-	static inline void pmevcntr_reset(void) {
+	static inline void pmevcntr_reset_all(void) {
 		pmcr_set(PMCR_EVENT_COUNTER_RESET);
 	}
 
@@ -632,6 +644,8 @@ const static unsigned CLR = 0;
 //https://developer.arm.com/documentation/ddi0500/j/Performance-Monitor-Unit/AArch32-PMU-register-summary?lang=en
 
 
+	//We opt to call pmu_enable() here,
+	//since the cycle counter won't be enabled/disabled as much as the generic event counters
 	static inline void pmccntr_enable(void) {
 		pmu_enable();
 		pmcnten_set(PMCNTEN_CYCLE_CTR);
@@ -751,7 +765,7 @@ const static unsigned CLR = 0;
 	int pmu_event_add(unsigned event, unsigned flags);
 	int pmu_event_remove(unsigned event, unsigned flags);
 	int pmu_event_reset(unsigned event, unsigned flags);
-	int pmu_event_read_fast(unsigned event, unsigned flags, unsigned * value);
+	int pmu_event_read_32(unsigned event, unsigned flags, unsigned * value);
 	int pmu_event_read(unsigned event, unsigned flags, unsigned long long * value);
 
 	/* TODO TODO TODO
@@ -763,10 +777,11 @@ const static unsigned CLR = 0;
 	Reset all counters
 	Disable pmu
 
+	Should we save register states to local variables, so these can be restored on unload?
 
-	Should the various disable functions also reset the counter?
-
-	How can we save register states to local variables, so these can be restored on unload?
+	Should we provide pause/resume counting semantics?
+	This might require a separate array to track which registers are enabled/disabled
+	so that pausing can disable a register without it presenting as "free" to use
 	*/
 
 
