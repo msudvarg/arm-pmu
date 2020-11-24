@@ -18,6 +18,7 @@
 * TODO: Add overflow interrupt support,
 *		with additional support for resetting event counts to -x
 *		to ensure an interrupt is raised every x occurances
+* TODO: Add appropriate locking semantics
 *
 *
 *** Additional Papers of Interest ***
