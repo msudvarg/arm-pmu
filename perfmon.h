@@ -32,6 +32,10 @@
 const static unsigned SET = 1;
 const static unsigned CLR = 0;
 
+//Macro to return 64-bit value from two 32-bit values
+#define ULL(low, high) ( (unsigned long long) low ) | \
+						( ( (unsigned long long) high ) << 32 );
+
 //PMCR: Performance Monitor Control Register
 //https://developer.arm.com/documentation/ddi0500/j/Performance-Monitor-Unit/AArch32-PMU-register-descriptions/Performance-Monitors-Control-Register?lang=en
 
@@ -863,6 +867,34 @@ const static unsigned CLR = 0;
 		}
 	}
 
+	/*
+		Read a 64-bit value from two adjacent event counter registers,
+		starting with register n.
+		Does not check to verify that the subsequent register is chaining,
+		or even valid.
+		We get the 64-bit value by:
+			1. Reading the chained register for the high bits
+			2. Reading the event register for the low bits
+			3. Reading the chained register again for the high bits
+			4. If the high bit value has changed, go to step 2
+		This guarantees we don't return a bad value
+		where an overflow occurs between the register reads.
+
+		Inspired by similar methods in the Linux Arm global timer driver:
+		https://github.com/torvalds/linux/blob/master/drivers/clocksource/arm_global_timer.c
+	*/
+	static unsigned long long pmevcntr_read_64(unsigned n) {		
+		unsigned low, high, old_high;
+		high = pmevcntr_read(n + 1);
+		do {
+			old_high = high;
+			low = pmevcntr_read(n);
+			high = pmevcntr_read(n + 1);
+		} while (high != old_high);
+
+		return ULL(low, high);
+	}
+
 	//This page suggests only bits 0-9 of PMEVTYPER are used to define event:
 	//https://developer.arm.com/docs/ddi0595/h/aarch32-system-registers/pmevtypern
 
@@ -934,8 +966,7 @@ const static unsigned CLR = 0;
 	static inline unsigned long long pmccntr_read_64(void) {
 			unsigned low, high;
 			asm volatile ("MRRC p15, 0, %0, %1, c9" : "=r" (low), "=r" (high));
-			return ( (unsigned long long) low) |
-					( ( (unsigned long long) high ) << 32 );
+			return ULL(low, high);
 	}
 
 	//Get cycle count value

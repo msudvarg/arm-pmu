@@ -174,26 +174,27 @@
     //On success, return event counter register index
 	int pmu_event_get(unsigned event, unsigned flags, unsigned long long * value) {
 
-        unsigned low, high;
-        low = high = 0;
-
-        int bit = pmu_event_read_32(event, flags, &low);
+        //Check if event is being  monitored        
+        int bit = pmcnten_get_event_bit(event);
         if (bit < 0) return bit;
 
+        if (!value) return PMU_RETURN_BAD_PTR;
+
         //Check if 64-bit chaining is defined
-        bit++;
-        if ( bit < pmu_nevents()) {
-
-            if ( pmevtyper_get(bit) == EVT_CHAIN) {
-                //If so, read the chained register
-                high = pmevcntr_read(bit);
-            }
-
+        if (
+            bit % 2 == 0 //Bit must be even
+            // bit + 1 < pmu_nevents() //Even bit implies next bit still in range
+            && pmevtyper_get(bit + 1) == EVT_CHAIN //Next bit is event chain
+        )
+        {
+            *value = pmevcntr_read_64(bit);
         }
-        bit--;
 
-        *value = ( (unsigned long long) low) |
-                ( ( (unsigned long long) high ) << 32 );
+        //Otherwise, just get the 32-bit value.
+        else {
+            unsigned low = pmevcntr_read(bit);
+            *value = ULL(low, 0);
+        }
         
         return bit;
 
